@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simulasi Hemat Energi Listrik</title>
+
+<style>
+*{
+    box-sizing:border-box;
+}
+
+body{
+    margin:0;
+    font-family:Arial, Helvetica, sans-serif;
+    background:#071426;
+    color:white;
+}
+
+header{
+    padding:25px 20px;
+    text-align:center;
+    background:linear-gradient(135deg,#0d47a1,#00acc1);
+}
+
+header h1{
+    margin:0;
+    font-size:32px;
+}
+
+header p{
+    margin:8px 0 0;
+    opacity:.9;
+}
+
+.container{
+    max-width:1200px;
+    margin:auto;
+    padding:25px;
+}
+
+.panel{
+    background:#10243e;
+    border-radius:18px;
+    padding:20px;
+    margin-bottom:20px;
+    box-shadow:0 8px 30px rgba(0,0,0,.25);
+}
+
+.controls{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+    gap:15px;
+}
+
+.control{
+    background:#16304f;
+    padding:15px;
+    border-radius:12px;
+}
+
+.control label{
+    display:block;
+    font-size:14px;
+    margin-bottom:8px;
+    color:#b8d8ff;
+}
+
+input,select{
+    width:100%;
+    padding:10px;
+    border:none;
+    border-radius:8px;
+    font-size:16px;
+}
+
+button{
+    border:none;
+    padding:13px 20px;
+    border-radius:10px;
+    font-weight:bold;
+    cursor:pointer;
+    font-size:16px;
+}
+
+.btn{
+    background:#00c853;
+    color:white;
+}
+
+.btn:hover{
+    background:#00a844;
+}
+
+.circuit{
+    position:relative;
+    height:330px;
+    background:#071b2f;
+    border-radius:15px;
+    overflow:hidden;
+}
+
+.wire{
+    position:absolute;
+    background:#90caf9;
+}
+
+.horizontal{
+    height:5px;
+}
+
+.vertical{
+    width:5px;
+}
+
+.battery{
+    position:absolute;
+    left:60px;
+    top:125px;
+    width:65px;
+    height:85px;
+    background:#263238;
+    border-radius:8px;
+    border:3px solid #78909c;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-weight:bold;
+}
+
+.battery::before{
+    content:"+";
+    position:absolute;
+    top:-20px;
+    font-size:22px;
+    color:#ff5252;
+}
+
+.battery::after{
+    content:"−";
+    position:absolute;
+    bottom:-22px;
+    font-size:22px;
+    color:#42a5f5;
+}
+
+.lamp{
+    position:absolute;
+    width:70px;
+    height:70px;
+    border-radius:50%;
+    background:#546e7a;
+    border:5px solid #90a4ae;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-weight:bold;
+    transition:.5s;
+    z-index:5;
+}
+
+.lamp.on{
+    background:#ffd740;
+    border-color:#fff59d;
+    color:#4e342e;
+    box-shadow:
+        0 0 15px #ffd740,
+        0 0 35px #ffca28,
+        0 0 70px rgba(255,202,40,.7);
+}
+
+.electron{
+    position:absolute;
+    width:12px;
+    height:12px;
+    background:#00e5ff;
+    border-radius:50%;
+    box-shadow:0 0 12px #00e5ff;
+    display:none;
+    z-index:10;
+}
+
+.result-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(170px,1fr));
+    gap:15px;
+}
+
+.result{
+    text-align:center;
+    padding:18px;
+    background:#16304f;
+    border-radius:12px;
+}
+
+.result span{
+    display:block;
+    color:#90caf9;
+    font-size:14px;
+}
+
+.result strong{
+    display:block;
+    margin-top:7px;
+    font-size:25px;
+    color:#69f0ae;
+}
+
+.formula{
+    line-height:1.8;
+    font-size:17px;
+    background:#071b2f;
+    padding:20px;
+    border-radius:12px;
+}
+
+.energy-message{
+    padding:18px;
+    margin-top:15px;
+    border-radius:12px;
+    background:#004d40;
+    border-left:5px solid #69f0ae;
+}
+
+.title{
+    margin-top:0;
+    color:#81d4fa;
+}
+
+@media(max-width:600px){
+    header h1{
+        font-size:24px;
+    }
+
+    .container{
+        padding:12px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+    <h1>⚡ Laboratorium Hemat Energi</h1>
+    <p>Eksplorasi Energi Listrik pada Rangkaian Seri & Paralel</p>
+</header>
+
+<div class="container">
+
+<div class="panel">
+<h2 class="title">🎛️ Pengaturan Percobaan</h2>
+
+<div class="controls">
+
+<div class="control">
+<label>Jenis Rangkaian</label>
+<select id="type">
+<option value="series">Seri</option>
+<option value="parallel">Paralel</option>
+</select>
+</div>
+
+<div class="control">
+<label>Tegangan (Volt)</label>
+<input id="voltage" type="number" value="12">
+</div>
+
+<div class="control">
+<label>Hambatan R₁ (Ω)</label>
+<input id="r1" type="number" value="10">
+</div>
+
+<div class="control">
+<label>Hambatan R₂ (Ω)</label>
+<input id="r2" type="number" value="20">
+</div>
+
+<div class="control">
+<label>Hambatan R₃ (Ω)</label>
+<input id="r3" type="number" value="30">
+</div>
+
+<div class="control">
+<label>Waktu Pemakaian (jam)</label>
+<input id="time" type="number" value="5">
+</div>
+
+</div>
+
+<br>
+
+<button class="btn" onclick="simulate()">
+▶ Mulai Simulasi
+</button>
+
+</div>
+
+
+<div class="panel">
+
+<h2 class="title">
+💡 Visualisasi Rangkaian
+</h2>
+
+<div class="circuit" id="circuit">
+
+<div class="battery">
+<span id="batteryText">12 V</span>
+</div>
+
+<div id="circuitElements"></div>
+
+<div class="electron" id="electron"></div>
+
+</div>
+
+</div>
+
+
+<div class="panel">
+
+<h2 class="title">
+📊 Hasil Perhitungan
+</h2>
+
+<div class="result-grid">
+
+<div class="result">
+<span>Hambatan Total</span>
+<strong id="rt">-</strong>
+</div>
+
+<div class="result">
+<span>Arus Total</span>
+<strong id="current">-</strong>
+</div>
+
+<div class="result">
+<span>Daya Listrik</span>
+<strong id="power">-</strong>
+</div>
+
+<div class="result">
+<span>Energi</span>
+<strong id="energy">-</strong>
+</div>
+
+<div class="result">
+<span>Energi kWh</span>
+<strong id="kwh">-</strong>
+</div>
+
+</div>
+
+</div>
+
+
+<div class="panel">
+
+<h2 class="title">
+🧮 Bagaimana Energi Dihitung?
+</h2>
+
+<div class="formula" id="formula">
+
+Pilih rangkaian dan tekan
+<b>Mulai Simulasi</b>.
+
+</div>
+
+<div class="energy-message" id="message">
+
+🌱 <b>Konsep Hemat Energi:</b><br>
+Energi listrik dipengaruhi oleh daya dan lama waktu penggunaan.
+
+</div>
+
+</div>
+
+</div>
+
+
+<script>
+
+let animation;
+
+function simulate(){
+
+    clearInterval(animation);
+
+    let type =
+        document.getElementById("type").value;
+
+    let V =
+        parseFloat(document.getElementById("voltage").value);
+
+    let R1 =
+        parseFloat(document.getElementById("r1").value);
+
+    let R2 =
+        parseFloat(document.getElementById("r2").value);
+
+    let R3 =
+        parseFloat(document.getElementById("r3").value);
+
+    let t =
+        parseFloat(document.getElementById("time").value);
+
+    if(
+        V <= 0 ||
+        R1 <= 0 ||
+        R2 <= 0 ||
+        R3 <= 0 ||
+        t <= 0
+    ){
+        alert("Semua nilai harus lebih dari 0.");
+        return;
+    }
+
+    let Rt;
+
+    if(type === "series"){
+
+        Rt = R1 + R2 + R3;
+
+    }else{
+
+        Rt =
+        1 /
+        (
+            1/R1 +
+            1/R2 +
+            1/R3
+        );
+
+    }
+
+    let I = V / Rt;
+
+    let P = V * I;
+
+    let E = P * t;
+
+    let kWh = E / 1000;
+
+
+    document.getElementById("batteryText")
+        .innerHTML = V + " V";
+
+    document.getElementById("rt")
+        .innerHTML = Rt.toFixed(2) + " Ω";
+
+    document.getElementById("current")
+        .innerHTML = I.toFixed(3) + " A";
+
+    document.getElementById("power")
+        .innerHTML = P.toFixed(2) + " W";
+
+    document.getElementById("energy")
+        .innerHTML = E.toFixed(2) + " Wh";
+
+    document.getElementById("kwh")
+        .innerHTML = kWh.toFixed(4) + " kWh";
+
+
+    drawCircuit(type);
+
+    showFormula(
+        type,
+        V,
+        R1,
+        R2,
+        R3,
+        Rt,
+        I,
+        P,
+        t,
+        E
+    );
+
+    animateElectron(type,I);
+
+    showMessage(P,t,E);
+
+}
+
+
+function drawCircuit(type){
+
+let area =
+document.getElementById("circuitElements");
+
+if(type === "series"){
+
+area.innerHTML = `
+
+<div class="wire horizontal"
+style="
+left:125px;
+top:125px;
+width:650px;
+"></div>
+
+<div class="wire vertical"
+style="
+left:775px;
+top:125px;
+height:150px;
+"></div>
+
+<div class="wire horizontal"
+style="
+left:95px;
+top:275px;
+width:685px;
+"></div>
+
+<div class="wire vertical"
+style="
+left:95px;
+top:205px;
+height:75px;
+"></div>
+
+
+<div class="lamp on"
+style="left:270px;top:92px;">
+R₁
+</div>
+
+<div class="lamp on"
+style="left:450px;top:92px;">
+R₂
+</div>
+
+<div class="lamp on"
+style="left:630px;top:92px;">
+R₃
+</div>
+
+`;
+
+}else{
+
+area.innerHTML = `
+
+<div class="wire horizontal"
+style="
+left:125px;
+top:90px;
+width:650px;
+"></div>
+
+<div class="wire vertical"
+style="
+left:775px;
+top:90px;
+height:190px;
+"></div>
+
+<div class="wire horizontal"
+style="
+left:95px;
+top:280px;
+width:685px;
+"></div>
+
+<div class="wire vertical"
+style="
+left:95px;
+top:90px;
+height:40px;
+"></div>
+
+<div class="wire vertical"
+style="
+left:250px;
+top:90px;
+height:190px;
+"></div>
+
+<div class="wire vertical"
+style="
+left:450px;
+top:90px;
+height:190px;
+"></div>
+
+<div class="wire vertical"
+style="
+left:650px;
+top:90px;
+height:190px;
+"></div>
+
+
+<div class="lamp on"
+style="
+left:217px;
+top:150px;">
+R₁
+</div>
+
+<div class="lamp on"
+style="
+left:417px;
+top:150px;">
+R₂
+</div>
+
+<div class="lamp on"
+style="
+left:617px;
+top:150px;">
+R₃
+</div>
+
+`;
+
+}
+
+}
+
+
+function showFormula(
+type,V,R1,R2,R3,Rt,I,P,t,E
+){
+
+let formula =
+document.getElementById("formula");
+
+if(type === "series"){
+
+formula.innerHTML = `
+
+<b>1️⃣ Hambatan Total Rangkaian Seri</b><br>
+
+R<sub>t</sub> =
+R₁ + R₂ + R₃
+
+<br>
+
+R<sub>t</sub> =
+${R1} + ${R2} + ${R3}
+
+<br>
+
+R<sub>t</sub> =
+<b>${Rt.toFixed(2)} Ω</b>
+
+<hr>
+
+<b>2️⃣ Menghitung Arus</b><br>
+
+I = V / R<sub>t</sub>
+
+<br>
+
+I =
+${V} / ${Rt.toFixed(2)}
+
+<br>
+
+I =
+<b>${I.toFixed(3)} A</b>
+
+<hr>
+
+<b>3️⃣ Menghitung Daya</b><br>
+
+P = V × I
+
+<br>
+
+P =
+${V} × ${I.toFixed(3)}
+
+<br>
+
+P =
+<b>${P.toFixed(2)} W</b>
+
+<hr>
+
+<b>4️⃣ Menghitung Energi</b><br>
+
+E = P × t
+
+<br>
+
+E =
+${P.toFixed(2)} × ${t}
+
+<br>
+
+E =
+<b>${E.toFixed(2)} Wh</b>
+
+`;
+
+}else{
+
+formula.innerHTML = `
+
+<b>1️⃣ Hambatan Total Rangkaian Paralel</b><br>
+
+1 / R<sub>t</sub> =
+1/R₁ + 1/R₂ + 1/R₃
+
+<br><br>
+
+1 / R<sub>t</sub> =
+
+1/${R1} +
+1/${R2} +
+1/${R3}
+
+<br><br>
+
+R<sub>t</sub> =
+<b>${Rt.toFixed(2)} Ω</b>
+
+<hr>
+
+<b>2️⃣ Menghitung Arus Total</b><br>
+
+I = V / R<sub>t</sub>
+
+<br>
+
+I =
+${V} / ${Rt.toFixed(2)}
+
+<br>
+
+I =
+<b>${I.toFixed(3)} A</b>
+
+<hr>
+
+<b>3️⃣ Menghitung Daya</b><br>
+
+P = V × I
+
+<br>
+
+P =
+${V} × ${I.toFixed(3)}
+
+<br>
+
+P =
+<b>${P.toFixed(2)} W</b>
+
+<hr>
+
+<b>4️⃣ Menghitung Energi</b><br>
+
+E = P × t
+
+<br>
+
+E =
+${P.toFixed(2)} × ${t}
+
+<br>
+
+E =
+<b>${E.toFixed(2)} Wh</b>
+
+`;
+
+}
+
+}
+
+
+function showMessage(P,t,E){
+
+let message =
+document.getElementById("message");
+
+message.innerHTML = `
+
+🌱 <b>Apa hubungannya dengan hemat energi?</b>
+
+<br><br>
+
+Rangkaian menggunakan daya sebesar
+<b>${P.toFixed(2)} watt</b>.
+
+Jika digunakan selama
+<b>${t} jam</b>,
+
+energi yang digunakan adalah
+
+<b>${E.toFixed(2)} Wh</b>.
+
+<br><br>
+
+💡 Semakin besar daya listrik dan semakin lama
+peralatan digunakan, semakin besar energi
+yang dikonsumsi.
+
+<br><br>
+
+<b>Hemat energi = gunakan daya secara efisien
+dan kurangi waktu penggunaan yang tidak diperlukan.</b>
+
+`;
+
+}
+
+
+function animateElectron(type,current){
+
+let e =
+document.getElementById("electron");
+
+e.style.display="block";
+
+let pos=0;
+
+/*
+Kecepatan animasi disesuaikan dengan arus.
+Dibatasi agar tetap nyaman dilihat.
+*/
+
+let speed =
+Math.max(5,Math.min(25,current*15));
+
+animation =
+setInterval(function(){
+
+pos += speed;
+
+if(pos>700){
+    pos=0;
+}
+
+if(type==="series"){
+
+    e.style.left =
+    (110 + pos) + "px";
+
+    e.style.top =
+    "120px";
+
+}else{
+
+    e.style.left =
+    (110 + pos) + "px";
+
+    e.style.top =
+    "85px";
+
+}
+
+},40);
+
+}
+
+
+/*
+Tampilkan rangkaian awal
+*/
+
+drawCircuit("series");
+
+</script>
+
+</body>
+</html>
